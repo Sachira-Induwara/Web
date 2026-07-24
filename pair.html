@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Pair Code</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      padding: 20px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 40px 30px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .icon-box {
+      font-size: 50px;
+      color: #25d366;
+      margin-bottom: 15px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    p.subtitle {
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 25px;
+    }
+
+    .input-box {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .input-field:focus {
+      border-color: #25d366;
+      box-shadow: 0 0 10px rgba(37, 211, 102, 0.4);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: #25d366;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #1ebc57;
+      transform: scale(1.02);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    #loading-spinner {
+      display: none;
+      margin-top: 20px;
+      font-size: 24px;
+      color: #25d366;
+    }
+
+    #pair {
+      margin-top: 20px;
+      font-size: 15px;
+    }
+
+    .code-box {
+      background: rgba(37, 211, 102, 0.2);
+      border: 1px dashed #25d366;
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: #fff;
+      display: inline-block;
+      margin-top: 10px;
+      transition: 0.3s;
+    }
+
+    .code-box:hover {
+      background: rgba(37, 211, 102, 0.4);
+    }
+
+    .error-msg {
+      color: #ff6b6b;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="icon-box">
+      <i class="fab fa-whatsapp"></i>
+    </div>
+    <h2>Link Device</h2>
+    <p class="subtitle">Enter your phone number with country code (e.g. +9472xxxxxxx)</p>
+
+    <form id="pair-form" class="input-box">
+      <input type="text" id="number" class="input-field" placeholder="+94729xxxxxx" required>
+      <button type="submit" id="submit" class="btn">Get Code</button>
+    </form>
+
+    <div id="loading-spinner">
+      <i class="fas fa-circle-notch fa-spin"></i>
+    </div>
+
+    <div id="pair"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js"></script>
+  <script>
+    const pairOutput = document.getElementById("pair");
+    const submitBtn = document.getElementById("submit");
+    const numberInput = document.getElementById("number");
+    const spinner = document.getElementById("loading-spinner");
+
+    async function copyCode(textToCopy) {
+      const copyBox = document.getElementById("copy-box");
+      await navigator.clipboard.writeText(textToCopy);
+      copyBox.innerHTML = "✔️ COPIED";
+      copyBox.style.color = "#25d366";
+      
+      setTimeout(() => {
+        copyBox.innerHTML = `CODE: <span>${textToCopy}</span>`;
+        copyBox.style.color = "#fff";
+      }, 1000);
+    }
+
+    document.getElementById("pair-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const rawNumber = numberInput.value.replace(/[^0-9]/g, "");
+
+      if (rawNumber.length < 10) {
+        pairOutput.innerHTML = '<p class="error-msg">❗ Invalid number format. Try again.</p>';
+        return;
+      }
+
+      spinner.style.display = "block";
+      pairOutput.innerHTML = '';
+
+      try {
+        let { data } = await axios(`/code?number=${rawNumber}`);
+        let code = data.code || "Unavailable";
+
+        if (data.code) {
+          pairOutput.innerHTML = `
+            <div id="copy-box" class="code-box" onclick="copyCode('${code}')">
+              CODE: <span style="color:#25d366">${code}</span>
+            </div>
+            <p style="font-size: 11px; color: #aaa; margin-top: 8px;">Click on the code to copy</p>
+          `;
+        } else {
+          pairOutput.innerHTML = '<p class="error-msg">❗ Service Unavailable. Try again later.</p>';
+        }
+      } catch (err) {
+        pairOutput.innerHTML = '<p class="error-msg">❗ An error occurred. Please try again.</p>';
+      } finally {
+        spinner.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
